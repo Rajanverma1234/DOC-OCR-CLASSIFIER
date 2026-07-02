@@ -73,10 +73,19 @@ def classify_image(image_path: str) -> dict:
 
 
 def process_document(image_path: str) -> dict:
-    """Full pipeline: preprocess -> OCR -> classify -> combined result."""
-    cleaned = preprocess_image(image_path)  # numpy array, cleaned/deskewed
-    ocr_result = extract_text_with_confidence(cleaned)
-    classification_result = classify_image(image_path)  # classifier uses the original (RGB) image
+    """
+    Full pipeline: preprocess (for CNN/visual reference) -> OCR -> classify -> combined result.
+
+    NOTE: OCR runs on the ORIGINAL image, not the heavily denoised/thresholded
+    'cleaned' version. Our fixed-blocksize adaptive threshold is tuned for
+    scanned forms with large, sparse text -- on dense, small-font documents
+    like resumes it erases fine detail and OCR quality gets much worse.
+    Tesseract has its own internal binarization that generally outperforms a
+    one-size-fits-all threshold for this kind of document.
+    """
+    _ = preprocess_image(image_path)  # kept for the app's side-by-side preview
+    ocr_result = extract_text_with_confidence(image_path)
+    classification_result = classify_image(image_path)
 
     return {
         "file": image_path,
